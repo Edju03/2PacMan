@@ -1,5 +1,6 @@
 import math
-
+import random
+from queue import PriorityQueue
 '''
 '#' - wall
 ' ' - free cell
@@ -77,9 +78,15 @@ class Map:
     def is_valid_position(self, position):
         """Check if a position is valid (not a wall)"""
         i, j = position
-        if (i < 0 or i >= len(self.map_array) or j < 0 or j >= len(self.map_array[0]) or (i, j) in self.wall_positions):
+        if i < 0 or i >= len(self.map_array) or j < 0 or j >= len(self.map_array[0]) or (i, j) in self.wall_positions:
             return False
         return True
+
+    def random_valid_position(self):
+        while True:
+            i, j = random.randrange(len(self.map_array)), random.randrange(len(self.map_array[0]))
+            if self.is_valid_position((i, j)):
+                return (i, j)
     
     def get_cookie_density(self, position, radius=3):
         """Calculate cookie density around a position"""
@@ -113,7 +120,7 @@ class Map:
             
         # Lower cost is more desirable
         return 10 - min(cookie_density, 8) + ghost_penalty + revisit_penalty
-    
+
     def calculate_ghost_cost(self, position, other_ghost_positions, last_pacman_position=None):
         """Calculate cost for Ghost movement based on coverage and Pacman location"""
         # First check if position is valid (not a wall)
@@ -137,6 +144,35 @@ class Map:
             
         # Lower cost means more desirable
         return 10 + ghost_proximity_penalty - pacman_bonus
+
+    def astar(self, start, goal, cost_func = lambda a, b: max(a[0] - b[0], a[1]-b[1])):
+        q = PriorityQueue()
+        parents = {}
+        dists = {}
+        q.put((0, start))
+        dists[start] = 0
+        while q:
+            cur = q.get()[1]
+            if cur == goal:
+                break
+            dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]]
+            for d in dirs:
+                neighbor = (cur[0] + d[0], cur[1] + d[1])
+                dist = dists[cur] + 1
+                if not self.is_valid_position(neighbor):
+                    continue
+                if neighbor not in dists or dist < dists[neighbor]:
+                    dists[neighbor] = dist
+                    parents[neighbor] = cur
+                    q.put((dists[neighbor] + cost_func(neighbor, goal), neighbor))
+        path = []
+        current = goal
+        while current in parents:
+            path.append(current)
+            current = parents[current]
+        return path[::-1]
+
+
 
     def update_cell(self, row, col, value):
         """Update a cell in the map array"""

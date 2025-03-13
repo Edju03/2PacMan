@@ -160,15 +160,16 @@ def main():
     
     # Initialize Ghosts
     ghost_colors = [RED, PINK, CYAN, ORANGE]
+    ghost_behaviors = ['chase', 'chase', 'random', 'random']
     ghosts = []
     for i, spawn in enumerate(spawn_points['ghost']):
         color = ghost_colors[i % len(ghost_colors)]
-        ghosts.append(Ghost(spawn, color, game_map))
+        ghosts.append(Ghost(spawn, color, game_map, ghost_behaviors[i]))
     
     # Game loop
     running = True
     while running:
-        pacman.direction = pacman.get_best_move([ghost.position for ghost in ghosts])
+        #pacman.direction = pacman.get_best_move([ghost.position for ghost in ghosts])
 
         # # Process events
         for event in pygame.event.get():
