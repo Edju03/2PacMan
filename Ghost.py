@@ -5,7 +5,7 @@ from Map import Map
 from Map import map_array
 
 class Ghost:
-    def __init__(self, position, color, map_obj, behavior = "chase"):
+    def __init__(self, position, color, map_obj, behavior = "chase", speed = 1):
         self.position = position
         self.color = color
         self.map = map_obj
@@ -13,8 +13,15 @@ class Ghost:
         self.scared = False
         self.move_queue = []
         self.behavior = behavior
+        self.speed = speed
+        self.move_counter = 0 # Used to slow down the ghost
     
     def move(self, pacman_position, other_ghost_positions):
+        self.move_counter += 1
+        if self.move_counter < 1/self.speed:
+            return
+        self.move_counter = 0
+        
         if self.scared:
             # When scared, move randomly or away from Pacman
             directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
