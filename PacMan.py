@@ -16,6 +16,7 @@ class PacMan:
         self.score = 0
         self.power_mode = False
         self.power_mode_timer = 0
+        self.vision_range = 5
         # Initialize known map as empty 
         self.known_map = [[None for _ in range(len(self.map.get_map()[0]))] for _ in range(len(self.map.get_map()))]
         # Update initial position and surroundings
@@ -23,6 +24,7 @@ class PacMan:
         # Track visible ghosts
         self.visible_ghosts = []
         self.move_queue = []
+        print(self.map.width, self.map.height)
 
 
     def update_ghost(self, ghost):
@@ -43,7 +45,19 @@ class PacMan:
                     next_map[neighbor] += ghost.prob_map[i, j]/ len(open_neighbors)
         ghost.prob_map = next_map
 
-
+    def observe_ghost(self, ghost):
+        next_prob = np.zeros_like(ghost.prob_map)
+        if ghost in self.visible_ghosts:
+            ghost.prob_map = next_prob
+            ghost.prob_map[ghost.position] = 1
+            return
+        for i in range(self.map.height):
+            for j in range(self.map.width):
+                if self.known_valid((i, j)):
+                    if abs(i - self.position[0]) + abs(j - self.position[1]) <= self.vision_range:
+                        next_prob[i, j] = ghost.prob_map[i, j]
+        next_prob /= np.sum(next_prob)
+        ghost.prob_map = next_prob
 
 
 
@@ -109,10 +123,10 @@ class PacMan:
     def update_known_map(self):
         # Update what Pac-Man knows about the map within Manhattan distance of 5
         real_map = self.map.get_map()
-        for i in range(max(0, self.position[0] - 5), min(len(real_map), self.position[0] + 6)):
-            for j in range(max(0, self.position[1] - 5), min(len(real_map[0]), self.position[1] + 6)):
-                # Check if within Manhattan distance of 5
-                if abs(i - self.position[0]) + abs(j - self.position[1]) <= 5:
+        for i in range(max(0, self.position[0] - self.vision_range), min(len(real_map), self.position[0] + self.vision_range + 1)):
+            for j in range(max(0, self.position[1] - self.vision_range), min(len(real_map[0]), self.position[1] + self.vision_range + 1)):
+                # Check if within Manhattan distance of self.vision_range
+                if abs(i - self.position[0]) + abs(j - self.position[1]) <= self.vision_range:
                     self.known_map[i][j] = real_map[i][j]
     
     def update_visible_ghosts(self, ghost_positions):
@@ -275,6 +289,7 @@ class PacMan:
         return best_direction
 
 
+
 def main():
     pygame.init()
     
@@ -285,15 +300,15 @@ def main():
     FPS = 10
     
     # Colors
-    BLACK = (0, 0, 0)
-    WHITE = (255, 255, 255)
-    YELLOW = (255, 255, 0)
-    RED = (255, 0, 0)
-    PINK = (255, 192, 203)
-    CYAN = (0, 255, 255)
-    ORANGE = (255, 165, 0)
-    BLUE = (0, 0, 255)
-    GRAY = (100, 100, 100) 
+    BLACK = np.array((0, 0, 0), dtype= np.float64)
+    WHITE = np.array((255, 255, 255), dtype= np.float64)
+    YELLOW = np.array((255, 255, 0), dtype= np.float64)
+    RED = np.array((255, 0, 0), dtype= np.float64)
+    PINK = np.array((255, 192, 203), dtype= np.float64)
+    CYAN = np.array((0, 255, 255), dtype= np.float64)
+    ORANGE = np.array((255, 165, 0), dtype= np.float64)
+    BLUE = np.array((0, 0, 255), dtype= np.float64)
+    GRAY = np.array((100, 100, 100) , dtype= np.float64)
     
     # Set up the display
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -351,7 +366,8 @@ def main():
         
         # Update visible ghosts after they've moved
         pacman.update_visible_ghosts([ghost.position for ghost in ghosts])
-        
+
+
         # Check for collisions between Pacman and ghosts
         for i, ghost in enumerate(ghosts):
             if pacman.position == ghost.position:
@@ -377,25 +393,25 @@ def main():
         for i in range(len(pacman.known_map)):
             for j in range(len(pacman.known_map[0])):
                 cell = pacman.known_map[i][j]
+                pellet = 0
+                cell_color = BLACK.copy()
                 if cell is None:
-                    pygame.draw.rect(screen, GRAY, (j * CELL_SIZE, i * CELL_SIZE, CELL_SIZE, CELL_SIZE))
-                elif cell == '#':  
-                    pygame.draw.rect(screen, BLUE, (j * CELL_SIZE, i * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+                    cell_color = GRAY.copy()
+                elif cell == '#':
+                    cell_color = BLUE.copy()
                 elif cell == 'c':
-                    pygame.draw.rect(screen, BLACK, (j * CELL_SIZE, i * CELL_SIZE, CELL_SIZE, CELL_SIZE))
-                    pygame.draw.circle(screen, WHITE, (j * CELL_SIZE + CELL_SIZE // 2, i * CELL_SIZE + CELL_SIZE // 2), CELL_SIZE // 10)
+                    pellet = 1
                 elif cell == 'B':
-                    pygame.draw.rect(screen, BLACK, (j * CELL_SIZE, i * CELL_SIZE, CELL_SIZE, CELL_SIZE))
-                    pygame.draw.circle(screen, WHITE, (j * CELL_SIZE + CELL_SIZE // 2, i * CELL_SIZE + CELL_SIZE // 2), CELL_SIZE // 5)
-                elif cell == ' ':
-                    pygame.draw.rect(screen, BLACK, (j * CELL_SIZE, i * CELL_SIZE, CELL_SIZE, CELL_SIZE))
-                elif cell == 'P1':
-                    pygame.draw.rect(screen, BLACK, (j * CELL_SIZE, i * CELL_SIZE, CELL_SIZE, CELL_SIZE))
-                    pygame.draw.circle(screen, YELLOW, (j * CELL_SIZE + CELL_SIZE // 2, i * CELL_SIZE + CELL_SIZE // 2), CELL_SIZE // 2)
-                elif cell == 'P2':
-                    pygame.draw.rect(screen, BLACK, (j * CELL_SIZE, i * CELL_SIZE, CELL_SIZE, CELL_SIZE))
-                    pygame.draw.circle(screen, YELLOW, (j * CELL_SIZE + CELL_SIZE // 2, i * CELL_SIZE + CELL_SIZE // 2), CELL_SIZE // 2)
-        
+                    pellet = 2
+
+                ghost_prob = ghosts[0].prob_map
+                print(ghost_prob[i, j], ghost_colors[0], cell_color)
+                cell_color += ghost_prob[i, j]*ghost_colors[0]
+
+                pygame.draw.rect(screen, cell_color, (j * CELL_SIZE, i * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+                if pellet != 0:
+                    pygame.draw.circle(screen, WHITE, (j * CELL_SIZE + CELL_SIZE // 2, i * CELL_SIZE + CELL_SIZE // 2), CELL_SIZE // (10/pellet))
+
         # Draw Pac-Man
         pygame.draw.circle(screen, YELLOW, 
                           (pacman.position[1] * CELL_SIZE + CELL_SIZE // 2, 

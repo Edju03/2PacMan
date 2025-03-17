@@ -17,7 +17,7 @@ class Ghost:
         self.behavior = behavior
         self.speed = speed
         self.move_counter = 0 # Used to slow down the ghost
-        self.prob_map = np.ones((self.map.width, self.map.height))/(self.map.width*self.map.height)
+        self.prob_map = np.ones((self.map.height, self.map.width))/(self.map.width*self.map.height)
         self.moved = False
 
     
