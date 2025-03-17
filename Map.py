@@ -22,7 +22,7 @@ map_array = [
     ['#','c','#','#','#','#','c','#','#','#','#','#','c','#','#','#','#','c','#'],
     ['#','c','c','c','c','c','c','c','c','r','c','c','c','c','c','c','c','c','#'],
     ['#','#','c','#','#','#','c','#','#','-','#','#','c','#','#','#','c','#','#'],
-    ['c','c','c','c','c','#','c','#','s','p','o','#','c','#','c','c','c','c','c'],
+    ['#','c','c','c','c','#','c','#','s','p','o','#','c','#','c','c','c','c','#'],
     ['#','#','c','#','c','#','c','#','#','#','#','#','c','#','c','#','c','#','#'],
     ['#','c','c','#','c','c','c','c','c','c','c','c','c','c','c','#','c','c','#'],
     ['#','c','#','#','#','#','c','#','#','#','#','#','c','#','#','#','#','c','#'],
@@ -39,16 +39,15 @@ map_array = [
 class Map:
 
     def __init__(self):
-
         self.map_array = map_array
-        self.height = len(map_array)
-        self.width = len(map_array[0])
         self.cookie_positions = []
         self.power_pellet_positions = []
         self.ghost_spawn_points = []
         self.pacman_spawn_points = []
         self.free_positions = []
         self.wall_positions = []
+        self.width = len(self.map_array[0])
+        self.height = len(self.map_array)
         self.initialize_positions()
 
     def get_map(self):
@@ -149,14 +148,17 @@ class Map:
         return 10 + ghost_proximity_penalty - pacman_bonus
 
     def astar(self, start, goal, cost_func = lambda a, b: max(a[0] - b[0], a[1]-b[1])):
+        # print(goal)
         q = PriorityQueue()
-        parents = {}
+        parents = {start: None}
         dists = {}
         q.put((0, start))
         dists[start] = 0
+        goal_reached = False
         while q:
             cur = q.get()[1]
-            if cur == goal:
+            goal_reached = cur
+            if cur in goal:
                 break
             dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]]
             for d in dirs:
@@ -167,12 +169,16 @@ class Map:
                 if neighbor not in dists or dist < dists[neighbor]:
                     dists[neighbor] = dist
                     parents[neighbor] = cur
-                    q.put((dists[neighbor] + cost_func(neighbor, goal), neighbor))
+                    cost = float('inf')
+                    for g in goal:
+                        cost = min(cost,cost_func(neighbor, g))
+                    q.put((dists[neighbor] + cost, neighbor))
         path = []
-        current = goal
+        current = goal_reached
         while current in parents:
             path.append(current)
             current = parents[current]
+        # print(goal_reached, path[::-1])
         return path[::-1]
 
 
