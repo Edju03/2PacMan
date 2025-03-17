@@ -318,11 +318,19 @@ class PacMan:
     
 
     def get_best_move_astar(self, ghosts):
-        path = self.map.astar(self.position, self.visible_cookies)
+        path = self.map.astar(self.position, self.visible_cookies, self.cost_func_astar, ghosts)
         return [path[1][i] - path[0][i] for i in range(2)]
     
-    # def cost_func_astar(self, position, goals):
+    def cost_func_astar(self, position, goal, ghosts):
+        cost = max(position[0] - goal[0], position[1] - goal[1])
 
+        for ghost in ghosts:
+            prob_map = ghost.prob_map
+            for di in range(-1, 2):
+                for dj in range(-1, 2):
+                    i, j = position[0] + di, position[1] + dj
+                    cost += prob_map[i, j] * 10
+        return cost
         
 
 def main():
@@ -360,7 +368,7 @@ def main():
     
     # Initialize Ghosts
     ghost_colors = [RED, PINK, CYAN, ORANGE]
-    ghost_behaviors = ["chase", "chase", "random", "random"]
+    ghost_behaviors = ["chase", "chase", "chase", "chase"]
     ghosts = []
     for i, spawn in enumerate(spawn_points['ghost']):
         color = ghost_colors[i % len(ghost_colors)]

@@ -147,7 +147,7 @@ class Map:
         # Lower cost means more desirable
         return 10 + ghost_proximity_penalty - pacman_bonus
 
-    def astar(self, start, goal, cost_func = lambda a, b: max(a[0] - b[0], a[1]-b[1])):
+    def astar(self, start, goal, cost_func = lambda a, b, ghosts: max(a[0] - b[0], a[1]-b[1]), ghosts = []):
         # print(goal)
         q = PriorityQueue()
         parents = {start: None}
@@ -171,7 +171,7 @@ class Map:
                     parents[neighbor] = cur
                     cost = float('inf')
                     for g in goal:
-                        cost = min(cost,cost_func(neighbor, g))
+                        cost = min(cost,cost_func(neighbor, g, ghosts))
                     q.put((dists[neighbor] + cost, neighbor))
         path = []
         current = goal_reached
