@@ -33,8 +33,8 @@ class PacMan:
         if not ghost.moved:
             return
         dirs = [(0, 1), (1, 0), (0, -1), (-1, 0)]
-        next_map = np.zeros_like(self.map)
-
+        next_map = np.zeros_like(ghost.prob_map)
+        print(ghost.prob_map.shape)
         for i in range(self.map.height):
             for j in range(self.map.width):
                 open_neighbors = []
@@ -56,7 +56,7 @@ class PacMan:
         for i in range(self.map.height):
             for j in range(self.map.width):
                 if self.known_valid((i, j)):
-                    if abs(i - self.position[0]) + abs(j - self.position[1]) <= self.vision_range:
+                    if abs(i - self.position[0]) + abs(j - self.position[1]) > self.vision_range:
                         next_prob[i, j] = ghost.prob_map[i, j]
         next_prob /= np.sum(next_prob)
         ghost.prob_map = next_prob
@@ -64,9 +64,9 @@ class PacMan:
 
 
     def known_valid(self, position):
-        if position[0] < 0 or position[0] >= self.map.width:
+        if position[0] < 0 or position[0] >= self.map.height:
             return False
-        if position[1] < 0 or position[1] >= self.map.height:
+        if position[1] < 0 or position[1] >= self.map.width:
             return False
         if self.known_map[position[0]][position[1]] == "#":
             return False
@@ -328,6 +328,7 @@ def main():
     WIDTH = 19 * CELL_SIZE
     HEIGHT = 21 * CELL_SIZE
     FPS = 10
+    gamma = 0.6
     
     # Colors
     BLACK = np.array((0, 0, 0), dtype= np.float64)
@@ -354,10 +355,11 @@ def main():
     
     # Initialize Ghosts
     ghost_colors = [RED, PINK, CYAN, ORANGE]
+    ghost_behaviors = ["random", "random", "random", "random"]
     ghosts = []
     for i, spawn in enumerate(spawn_points['ghost']):
         color = ghost_colors[i % len(ghost_colors)]
-        ghosts.append(Ghost(spawn, color, game_map, speed = 0.5))
+        ghosts.append(Ghost(spawn, color, game_map, behavior = ghost_behaviors[i], speed = 0.5))
     
     # Game loop
     running = True
@@ -395,7 +397,10 @@ def main():
         
         # Update visible ghosts after they've moved
         pacman.update_visible_ghosts(ghosts)
-        
+        for ghost in ghosts:
+            pacman.update_ghost(ghost)
+            pacman.observe_ghost(ghost)
+
         # Check for collisions between Pacman and ghosts
         for i, ghost in enumerate(ghosts):
             if pacman.position == ghost.position:
@@ -431,12 +436,13 @@ def main():
                     pellet = 1
                 elif cell == 'B':
                     pellet = 2
-
-                ghost_prob = ghosts[0].prob_map
-                print(ghost_prob[i, j], ghost_colors[0], cell_color)
-                cell_color += ghost_prob[i, j]*ghost_colors[0]
-
+                for ghost in ghosts:
+                    ghost_prob = ghost.prob_map
+                    cell_color += (ghost_prob[i, j]**gamma)*ghost.color
+                    #print(ghost_prob)
+                cell_color = np.clip(cell_color, 0, 255)
                 pygame.draw.rect(screen, cell_color, (j * CELL_SIZE, i * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+
                 if pellet != 0:
                     pygame.draw.circle(screen, WHITE, (j * CELL_SIZE + CELL_SIZE // 2, i * CELL_SIZE + CELL_SIZE // 2), CELL_SIZE // (10/pellet))
 
