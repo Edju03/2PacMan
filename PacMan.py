@@ -22,6 +22,39 @@ class PacMan:
         self.update_known_map()
         # Track visible ghosts
         self.visible_ghosts = []
+        self.move_queue = []
+
+
+    def update_ghost(self, ghost):
+        if not ghost.moved:
+            return
+        dirs = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+        next_map = np.zeros_like(self.map)
+
+        for i in range(self.map.height):
+            for j in range(self.map.width):
+                open_neighbors = []
+                for d in dirs:
+                    neighbor = (i + d[0], j + d[1])
+                    if self.known_valid(neighbor):
+                        open_neighbors.append(neighbor)
+
+                for neighbor in open_neighbors:
+                    next_map[neighbor] += ghost.prob_map[i, j]/ len(open_neighbors)
+        ghost.prob_map = next_map
+
+
+
+
+
+    def known_valid(self, position):
+        if position[0] < 0 or position[0] >= self.map.width:
+            return False
+        if position[1] < 0 or position[1] >= self.map.height:
+            return False
+        if self.known_map[position[0]][position[1]] == "#":
+            return False
+        return True
 
     def move(self, direction, ghost_positions):
         # Calculate potential new position
@@ -111,6 +144,12 @@ class PacMan:
     #             if dist != float('inf'):
     #                 cost[i][j] += ghost_weight * dist
     #     return cost
+
+    # def calc_move(self):
+    #
+    #     if self.move_queue:
+
+
 
 
     def cost_func(self, position, ghost_positions):
@@ -270,10 +309,11 @@ def main():
     
     # Initialize Ghosts
     ghost_colors = [RED, PINK, CYAN, ORANGE]
+    ghost_behaviors = ["slow_chase", "slow_chase", "random", "random"]
     ghosts = []
     for i, spawn in enumerate(spawn_points['ghost']):
         color = ghost_colors[i % len(ghost_colors)]
-        ghosts.append(Ghost(spawn, color, game_map, speed = 0.5))
+        ghosts.append(Ghost(spawn, color, game_map, behavior = ghost_behaviors[i], speed = 0.5))
     
     # Game loop
     running = True

@@ -39,7 +39,10 @@ map_array = [
 class Map:
 
     def __init__(self):
+
         self.map_array = map_array
+        self.height = len(map_array)
+        self.width = len(map_array[0])
         self.cookie_positions = []
         self.power_pellet_positions = []
         self.ghost_spawn_points = []
