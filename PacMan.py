@@ -6,6 +6,7 @@ from Map import map_array
 from Ghost import Ghost
 import numpy as np
 
+
 class PacMan:
     def __init__(self, position):
         self.position = position
@@ -14,10 +15,10 @@ class PacMan:
         self.visited_positions = set()
         self.visited_positions.add(position)
         self.score = 0
+        self.vision_range = 5
         self.power_mode = False
         self.power_mode_timer = 0
-        self.vision_range = 5
-        # Initialize known map as empty
+        # Initialize known map as empty 
         self.known_map = [[None for _ in range(len(self.map.get_map()[0]))] for _ in range(len(self.map.get_map()))]
         # Update initial position and surroundings
         self.update_known_map()
@@ -27,50 +28,6 @@ class PacMan:
         self.visible_power_pellets = []
         self.move_queue = []
         print(self.map.width, self.map.height)
-
-
-    def update_ghost(self, ghost):
-        if not ghost.moved:
-            return
-        dirs = [(0, 1), (1, 0), (0, -1), (-1, 0)]
-        next_map = np.zeros_like(ghost.prob_map)
-        print(ghost.prob_map.shape)
-        for i in range(self.map.height):
-            for j in range(self.map.width):
-                open_neighbors = []
-                for d in dirs:
-                    neighbor = (i + d[0], j + d[1])
-                    if self.known_valid(neighbor):
-                        open_neighbors.append(neighbor)
-
-                for neighbor in open_neighbors:
-                    next_map[neighbor] += ghost.prob_map[i, j]/ len(open_neighbors)
-        ghost.prob_map = next_map
-
-    def observe_ghost(self, ghost):
-        next_prob = np.zeros_like(ghost.prob_map)
-        if ghost in self.visible_ghosts:
-            ghost.prob_map = next_prob
-            ghost.prob_map[ghost.position] = 1
-            return
-        for i in range(self.map.height):
-            for j in range(self.map.width):
-                if self.known_valid((i, j)):
-                    if abs(i - self.position[0]) + abs(j - self.position[1]) > self.vision_range:
-                        next_prob[i, j] = ghost.prob_map[i, j]
-        next_prob /= np.sum(next_prob)
-        ghost.prob_map = next_prob
-
-
-
-    def known_valid(self, position):
-        if position[0] < 0 or position[0] >= self.map.height:
-            return False
-        if position[1] < 0 or position[1] >= self.map.width:
-            return False
-        if self.known_map[position[0]][position[1]] == "#":
-            return False
-        return True
 
     def move(self, direction, ghosts):
         # Calculate potential new position
@@ -127,12 +84,53 @@ class PacMan:
     def update_known_map(self):
         # Update what Pac-Man knows about the map within Manhattan distance of 5
         real_map = self.map.get_map()
-        for i in range(max(0, self.position[0] - self.vision_range), min(len(real_map), self.position[0] + self.vision_range + 1)):
-            for j in range(max(0, self.position[1] - self.vision_range), min(len(real_map[0]), self.position[1] + self.vision_range + 1)):
-                # Check if within Manhattan distance of self.vision_range
-                if abs(i - self.position[0]) + abs(j - self.position[1]) <= self.vision_range:
+        for i in range(max(0, self.position[0] - 5), min(len(real_map), self.position[0] + 6)):
+            for j in range(max(0, self.position[1] - 5), min(len(real_map[0]), self.position[1] + 6)):
+                # Check if within Manhattan distance of 5
+                if abs(i - self.position[0]) + abs(j - self.position[1]) <= 5:
                     self.known_map[i][j] = real_map[i][j]
     
+    def update_ghost(self, ghost):
+        if not ghost.moved:
+            return
+        dirs = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+        next_map = np.zeros_like(ghost.prob_map)
+        print(ghost.prob_map.shape)
+        for i in range(self.map.height):
+            for j in range(self.map.width):
+                open_neighbors = []
+                for d in dirs:
+                    neighbor = (i + d[0], j + d[1])
+                    if self.known_valid(neighbor):
+                        open_neighbors.append(neighbor)
+
+                for neighbor in open_neighbors:
+                    next_map[neighbor] += ghost.prob_map[i, j]/ len(open_neighbors)
+        ghost.prob_map = next_map
+
+    def observe_ghost(self, ghost):
+        next_prob = np.zeros_like(ghost.prob_map)
+        if ghost in self.visible_ghosts:
+            ghost.prob_map = next_prob
+            ghost.prob_map[ghost.position] = 1
+            return
+        for i in range(self.map.height):
+            for j in range(self.map.width):
+                if self.known_valid((i, j)):
+                    if abs(i - self.position[0]) + abs(j - self.position[1]) > self.vision_range:
+                        next_prob[i, j] = ghost.prob_map[i, j]
+        next_prob /= np.sum(next_prob)
+        ghost.prob_map = next_prob
+
+    def known_valid(self, position):
+        if position[0] < 0 or position[0] >= self.map.height:
+            return False
+        if position[1] < 0 or position[1] >= self.map.width:
+            return False
+        if self.known_map[position[0]][position[1]] == "#":
+            return False
+        return True
+
     def update_visible_ghosts(self, ghosts):
         # Clear previous visible ghosts
         self.visible_ghosts = []
@@ -140,7 +138,7 @@ class PacMan:
         for ghost in ghosts:
             if abs(ghost.position[0] - self.position[0]) + abs(ghost.position[1] - self.position[1]) <= 5:
                 self.visible_ghosts.append(ghost)
-
+    
     def update_visible_cookies(self):
         # Check which cookies are within Manhattan distance of 5
         cookie_positions = self.map.cookie_positions
@@ -153,7 +151,7 @@ class PacMan:
         for cookie_pos in self.visible_cookies:
             if cookie_pos not in self.map.cookie_positions:
                 self.visible_cookies.remove(cookie_pos)
-
+            
 
     def update_visible_power_pellets(self):
         # Check which power pellets are within Manhattan distance of 5
@@ -201,10 +199,10 @@ class PacMan:
         # real_map = self.map.get_map()
         # for i in range(max(0, self.position[0] - 5), min(len(real_map), self.position[0] + 6)):
         #     for j in range(max(0, self.position[1] - 5), min(len(real_map[0]), self.position[1] + 6)):
-        #         if (i < 0 or i >= len(self.known_map) or
-        #             j < 0 or j >= len(self.known_map[0]) or
+        #         if (i < 0 or i >= len(self.known_map) or 
+        #             j < 0 or j >= len(self.known_map[0]) or 
         #             (self.known_map[i][j] is not None and self.known_map[i][j] == '#')):
-        #             cost[i, j] = -1000
+        #             cost[i, j] = -1000                
 
         # First, set very negative cost for all walls and out-of-bounds cells
         for di in range(-2, 3):
@@ -280,7 +278,7 @@ class PacMan:
     def get_best_move(self, ghosts):
         """Use cost function to find the best move for Pacman"""
         directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]  # right, down, left, up
-
+        
         # Calculate cost for each direction
         best_direction = (0, 0)
         best_score = float('-inf')
@@ -317,8 +315,15 @@ class PacMan:
                     return direction
         
         return best_direction
+    
 
+    def get_best_move_astar(self, ghosts):
+        path = self.map.astar(self.position, self.visible_cookies)
+        return [path[1][i] - path[0][i] for i in range(2)]
+    
+    # def cost_func_astar(self, position, goals):
 
+        
 
 def main():
     pygame.init()
@@ -355,16 +360,18 @@ def main():
     
     # Initialize Ghosts
     ghost_colors = [RED, PINK, CYAN, ORANGE]
-    ghost_behaviors = ["random", "random", "random", "random"]
+    ghost_behaviors = ["chase", "chase", "random", "random"]
     ghosts = []
     for i, spawn in enumerate(spawn_points['ghost']):
         color = ghost_colors[i % len(ghost_colors)]
-        ghosts.append(Ghost(spawn, color, game_map, behavior = ghost_behaviors[i], speed = 0.5))
+        ghosts.append(Ghost(spawn, color, game_map, behavior = ghost_behaviors[i],speed = 0.5))
     
     # Game loop
     running = True
     while running:
-        pacman.direction = pacman.get_best_move(ghosts)
+
+        pacman.update_visible_cookies()
+        pacman.direction = pacman.get_best_move_astar(ghosts)
 
         # # Process events
         for event in pygame.event.get():
@@ -397,10 +404,11 @@ def main():
         
         # Update visible ghosts after they've moved
         pacman.update_visible_ghosts(ghosts)
+
         for ghost in ghosts:
             pacman.update_ghost(ghost)
             pacman.observe_ghost(ghost)
-
+        
         # Check for collisions between Pacman and ghosts
         for i, ghost in enumerate(ghosts):
             if pacman.position == ghost.position:
@@ -445,7 +453,7 @@ def main():
 
                 if pellet != 0:
                     pygame.draw.circle(screen, WHITE, (j * CELL_SIZE + CELL_SIZE // 2, i * CELL_SIZE + CELL_SIZE // 2), CELL_SIZE // (10/pellet))
-
+        
         # Draw Pac-Man
         pygame.draw.circle(screen, YELLOW, 
                           (pacman.position[1] * CELL_SIZE + CELL_SIZE // 2, 
@@ -456,6 +464,13 @@ def main():
         for ghost in ghosts:
             if ghost in pacman.visible_ghosts:
                 color = BLUE if ghost.scared else ghost.color
+                pygame.draw.circle(screen, color, 
+                                  (ghost.position[1] * CELL_SIZE + CELL_SIZE // 2, 
+                                   ghost.position[0] * CELL_SIZE + CELL_SIZE // 2), 
+                                  CELL_SIZE // 2)
+            else:
+                color = ghost.color
+                color = (color[0]//2, color[1]//2, color[2]//2)
                 pygame.draw.circle(screen, color, 
                                   (ghost.position[1] * CELL_SIZE + CELL_SIZE // 2, 
                                    ghost.position[0] * CELL_SIZE + CELL_SIZE // 2), 
