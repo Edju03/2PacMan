@@ -193,7 +193,7 @@ class PacMan:
 
     def cost_func(self, position, ghosts):
         # Use known map instead of full map - focus on immediate neighbors
-        cost = np.zeros((11, 11))  # 5x5 grid centered on Pac-Man
+        cost = np.zeros((5, 5))  # 5x5 grid centered on Pac-Man
         ghost_weight = -30  # Stronger negative weight to avoid ghosts
         cookie_weight = 15
         unexplored_weight = 5
@@ -207,10 +207,10 @@ class PacMan:
         #             cost[i, j] = -1000
 
         # First, set very negative cost for all walls and out-of-bounds cells
-        for di in range(-5, 6):
-            for dj in range(-5, 6):
+        for di in range(-2, 3):
+            for dj in range(-2, 3):
                 i, j = position[0] + di, position[1] + dj
-                cost_i, cost_j = di + 5, dj + 5
+                cost_i, cost_j = di + 2, dj + 2
                 
                 # Check if position is valid
                 if (i < 0 or i >= len(self.known_map) or 
@@ -270,10 +270,10 @@ class PacMan:
                 
                 # Only penalize backtracking if there are other options
                 if valid_moves > 1:
-                    cost[cost_i, cost_j] -= 10
+                    cost[cost_i, cost_j] -= 100
         
         # Add some small random noise to break ties
-        cost += np.random.random((11, 11)) * 0.1
+        cost += np.random.random((5, 5)) * 0.1
         
         return cost
     
