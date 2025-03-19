@@ -329,7 +329,12 @@ class PacMan:
             for di in range(-1, 2):
                 for dj in range(-1, 2):
                     i, j = position[0] + di, position[1] + dj
-                    cost += prob_map[i, j] * 10
+                    if i < 0 or i >= len(self.known_map) or j < 0 or j >= len(self.known_map[0]):
+                        continue
+                    if prob_map[i, j] == 1:
+                        cost += np.inf
+                        continue
+                    cost += prob_map[i, j] * 40 / (di**2 + dj**2+1)
         return cost
         
 
@@ -368,7 +373,7 @@ def main():
     
     # Initialize Ghosts
     ghost_colors = [RED, PINK, CYAN, ORANGE]
-    ghost_behaviors = ["chase", "chase", "chase", "chase"]
+    ghost_behaviors = ["chase", "random", "chase", "random"]
     ghosts = []
     for i, spawn in enumerate(spawn_points['ghost']):
         color = ghost_colors[i % len(ghost_colors)]
@@ -453,8 +458,9 @@ def main():
                 elif cell == 'B':
                     pellet = 2
                 for ghost in ghosts:
-                    ghost_prob = ghost.prob_map
-                    cell_color += (ghost_prob[i, j]**gamma)*ghost.color
+                    if ghost not in pacman.visible_ghosts:
+                        ghost_prob = ghost.prob_map
+                        cell_color += (ghost_prob[i, j]**gamma)*ghost.color
                     #print(ghost_prob)
                 cell_color = np.clip(cell_color, 0, 255)
                 pygame.draw.rect(screen, cell_color, (j * CELL_SIZE, i * CELL_SIZE, CELL_SIZE, CELL_SIZE))
@@ -476,13 +482,13 @@ def main():
                                   (ghost.position[1] * CELL_SIZE + CELL_SIZE // 2, 
                                    ghost.position[0] * CELL_SIZE + CELL_SIZE // 2), 
                                   CELL_SIZE // 2)
-            else:
-                color = ghost.color
-                color = (color[0]//2, color[1]//2, color[2]//2)
-                pygame.draw.circle(screen, color, 
-                                  (ghost.position[1] * CELL_SIZE + CELL_SIZE // 2, 
-                                   ghost.position[0] * CELL_SIZE + CELL_SIZE // 2), 
-                                  CELL_SIZE // 2)
+            # else:
+            #     color = ghost.color
+            #     color = (color[0]//2, color[1]//2, color[2]//2)
+            #     pygame.draw.circle(screen, color,
+            #                       (ghost.position[1] * CELL_SIZE + CELL_SIZE // 2,
+            #                        ghost.position[0] * CELL_SIZE + CELL_SIZE // 2),
+            #                       CELL_SIZE // 2)
             
         # Draw score
         font = pygame.font.SysFont(None, 24)

@@ -59,7 +59,7 @@ class Ghost:
                 self.direction = best_move
                 self.position = (self.position[0] + best_move[0], self.position[1] + best_move[1])
             if self.behavior == "random":
-                best_move = self.random_move()
+                best_move = self.random_move(pacman_position)
                 self.direction = best_move
                 self.position = (self.position[0] + best_move[0], self.position[1] + best_move[1])
 
@@ -93,13 +93,25 @@ class Ghost:
         self.move_queue = path[1:]
         return path[1][0] - self.position[0], path[1][1] - self.position[1]
 
-    def random_move(self):
+    def random_move(self, pacman_position, target_prob = 0.05):
+        if random.random() < target_prob:
+            return self.chase_move(pacman_position)
         if self.move_queue:
             ret = self.move_queue.pop(0)
             return ret[0] - self.position[0], ret[1] - self.position[1]
+
         path = self.map.astar(self.position, [self.map.random_valid_position()])
+        while len(path) <= 1:
+            path = self.map.astar(self.position, [self.map.random_valid_position()])
         self.move_queue = path[1:]
+
         return path[1][0] - self.position[0], path[1][1] - self.position[1]
-    
+
+    def closeness_cost(self, ghosts):
+        cost = 0
+        for ghost in ghosts:
+            if ghost != self:
+                cost += 5/self.map.dist(self.position, ghost.position)**2
+
     def set_scared(self, scared):
         self.scared = scared
