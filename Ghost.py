@@ -15,7 +15,8 @@ class Ghost:
         self.scared = False
         self.move_queue = []
         self.behavior = behavior
-        self.prob_map = np.ones((self.map.height, self.map.width))/(self.map.width*self.map.height)
+        self.prob_map = np.zeros((self.map.height, self.map.width))
+        self.prob_map[position] = 1
         self.speed = speed
         self.move_counter = 0 # Used to slow down the ghost
         self.moved = False
@@ -113,5 +114,7 @@ class Ghost:
             if ghost != self:
                 cost += 100/(Map.dist(self.position, ghost.position) + 0.1)
         return cost
+
+
     def set_scared(self, scared):
         self.scared = scared

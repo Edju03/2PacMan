@@ -147,15 +147,12 @@ class PacMan:
         next_prob = np.zeros_like(ghost.prob_map)
         if ghost in self.visible_ghosts:
             ghost.prob_map = next_prob
-            ghost.prob_map[ghost.position] = 1
-            return
+            ghost.prob_map[ghost.position] += 5/(Map.dist(self.position, ghost.position) + 0.01)
         for i in range(self.map.height):
             for j in range(self.map.width):
                 if self.known_valid((i, j)):
                    if 0 <= i < self.map.height and 0 <= j < self.map.width:
-                        print(i, j)
-
-                        if self.cur_visibility[i, j] == 1:
+                        if self.cur_visibility[i, j] == 0:
                             next_prob[i, j] = ghost.prob_map[i, j]
         next_prob /= np.sum(next_prob)
         ghost.prob_map = next_prob
@@ -523,7 +520,6 @@ def main():
         for ghost in ghosts:
             pacman.update_ghost(ghost)
             pacman.observe_ghost(ghost)
-        
         # Check for collisions between Pacman and ghosts
         for i, ghost in enumerate(ghosts):
             if pacman.position == ghost.position:
@@ -565,7 +561,6 @@ def main():
                         cell_color += (ghost_prob[i, j]**gamma)*ghost.color
                     #print(ghost_prob)
                 cell_color = np.clip(cell_color, 0, 255)
-                print(cell_color)
                 pygame.draw.rect(screen, cell_color, (j * CELL_SIZE, i * CELL_SIZE, CELL_SIZE, CELL_SIZE))
 
                 if pellet != 0:
@@ -578,13 +573,13 @@ def main():
                           CELL_SIZE // 2)
         
         # Draw visible ghosts
-        for ghost in ghosts:
-            if ghost in pacman.visible_ghosts:
-                color = BLUE if ghost.scared else ghost.color
-                pygame.draw.circle(screen, color, 
-                                  (ghost.position[1] * CELL_SIZE + CELL_SIZE // 2, 
-                                   ghost.position[0] * CELL_SIZE + CELL_SIZE // 2), 
-                                  CELL_SIZE // 2)
+        # for ghost in ghosts:
+        #     if ghost in pacman.visible_ghosts:
+        #         color = BLUE if ghost.scared else ghost.color
+        #         pygame.draw.circle(screen, color,
+        #                           (ghost.position[1] * CELL_SIZE + CELL_SIZE // 2,
+        #                            ghost.position[0] * CELL_SIZE + CELL_SIZE // 2),
+        #                           CELL_SIZE // 2)
             # else:
             #     color = ghost.color
             #     color = (color[0]//2, color[1]//2, color[2]//2)
