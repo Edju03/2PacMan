@@ -168,6 +168,7 @@ class Map:
                     dists[neighbor] = dist
                     parents[neighbor] = cur
                     q.put((dists[neighbor] + cost_func(neighbor, goal), neighbor))
+        
         path = []
         current = goal
         while current in parents:
