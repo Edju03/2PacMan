@@ -89,29 +89,29 @@ class Ghost:
         # move_ret = (random.randint(-1, 1), random.randint(-1, 1))
         # if map_array[self.position[0] + move_ret[0]][self.position[1] + move_ret[1]] != '#':
         #     return move_ret
-        path = self.map.astar(self.position, [pacman_position])
+        path = self.map.astar(self.position, [pacman_position], cost_func=self.closeness_cost)
         self.move_queue = path[1:]
         return path[1][0] - self.position[0], path[1][1] - self.position[1]
 
     def random_move(self, pacman_position, target_prob = 0.05):
-        if random.random() < target_prob:
-            return self.chase_move(pacman_position)
+        # if random.random() < target_prob:
+        #     return self.chase_move(pacman_position)
         if self.move_queue:
             ret = self.move_queue.pop(0)
             return ret[0] - self.position[0], ret[1] - self.position[1]
 
-        path = self.map.astar(self.position, [self.map.random_valid_position()])
+        path = self.map.astar(self.position, [self.map.random_valid_position()], cost_func=self.closeness_cost)
         while len(path) <= 1:
-            path = self.map.astar(self.position, [self.map.random_valid_position()])
+            path = self.map.astar(self.position, [self.map.random_valid_position()], cost_func=self.closeness_cost)
         self.move_queue = path[1:]
 
         return path[1][0] - self.position[0], path[1][1] - self.position[1]
 
-    def closeness_cost(self, ghosts):
+    def closeness_cost(self, a, b, ghosts):
         cost = 0
         for ghost in ghosts:
             if ghost != self:
-                cost += 5/self.map.dist(self.position, ghost.position)**2
-
+                cost += 100/(Map.dist(self.position, ghost.position) + 0.1)
+        return cost
     def set_scared(self, scared):
         self.scared = scared

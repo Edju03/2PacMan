@@ -27,6 +27,7 @@ class PacMan:
         self.visible_cookies = []
         self.visible_power_pellets = []
         self.move_queue = []
+
         print(self.map.width, self.map.height)
 
     def move(self, direction, ghosts):
@@ -89,11 +90,12 @@ class PacMan:
                 # Check if within Manhattan distance of 5
                 if abs(i - self.position[0]) + abs(j - self.position[1]) <= 5:
                     self.known_map[i][j] = real_map[i][j]
-    
+
+
     def update_ghost(self, ghost):
         if not ghost.moved:
             return
-        dirs = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+        dirs = [(0, 1), (1, 0), (0, -1), (-1, 0), (0, 0)]
         next_map = np.zeros_like(ghost.prob_map)
         print(ghost.prob_map.shape)
         for i in range(self.map.height):
@@ -105,8 +107,10 @@ class PacMan:
                         open_neighbors.append(neighbor)
 
                 for neighbor in open_neighbors:
-                    next_map[neighbor] += ghost.prob_map[i, j]/ len(open_neighbors)
-        ghost.prob_map = next_map
+                    next_map[neighbor] += ghost.prob_map[i, j]/ len(open_neighbors) / (Map.dist(self.position, neighbor) + 2)
+
+        ghost.prob_map = next_map/np.sum(next_map)
+
 
     def observe_ghost(self, ghost):
         next_prob = np.zeros_like(ghost.prob_map)
@@ -319,6 +323,7 @@ class PacMan:
 
     def get_best_move_astar(self, ghosts):
         path = self.map.astar(self.position, self.visible_cookies, self.cost_func_astar, ghosts)
+        self.move_queue = path
         return [path[1][i] - path[0][i] for i in range(2)]
     
     def cost_func_astar(self, position, goal, ghosts):
@@ -358,6 +363,7 @@ def main():
     ORANGE = np.array((255, 165, 0), dtype= np.float64)
     BLUE = np.array((0, 0, 255), dtype= np.float64)
     GRAY = np.array((100, 100, 100) , dtype= np.float64)
+    GREEN = np.array((0, 255, 0) , dtype= np.float64)
     
     # Set up the display
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -373,7 +379,7 @@ def main():
     
     # Initialize Ghosts
     ghost_colors = [RED, PINK, CYAN, ORANGE]
-    ghost_behaviors = ["chase", "random", "chase", "random"]
+    ghost_behaviors = ["chase", "chase", "random", "random"]
     ghosts = []
     for i, spawn in enumerate(spawn_points['ghost']):
         color = ghost_colors[i % len(ghost_colors)]
@@ -489,7 +495,13 @@ def main():
             #                       (ghost.position[1] * CELL_SIZE + CELL_SIZE // 2,
             #                        ghost.position[0] * CELL_SIZE + CELL_SIZE // 2),
             #                       CELL_SIZE // 2)
-            
+        disp_path = np.array(pacman.move_queue, dtype = np.float32)
+        disp_path *= CELL_SIZE
+        disp_path += CELL_SIZE/2
+        disp_path = [(int(p[1]), int(p[0])) for p in disp_path[1:]]
+        if len(disp_path) > 1:
+
+            pygame.draw.lines(screen, GREEN, closed = False, points = disp_path, width = 3)
         # Draw score
         font = pygame.font.SysFont(None, 24)
         score_text = font.render(f"Score: {pacman.score}", True, WHITE)
