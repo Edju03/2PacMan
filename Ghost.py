@@ -15,11 +15,10 @@ class Ghost:
         self.scared = False
         self.move_queue = []
         self.behavior = behavior
+        self.prob_map = np.ones((self.map.height, self.map.width))/(self.map.width*self.map.height)
         self.speed = speed
         self.move_counter = 0 # Used to slow down the ghost
-        self.prob_map = np.ones((self.map.height, self.map.width))/(self.map.width*self.map.height)
         self.moved = False
-
     
     def move(self, pacman_position, other_ghost_positions):
         self.move_counter += 1
@@ -28,6 +27,7 @@ class Ghost:
             return
         self.move_counter = 0
         self.moved = True
+        
         if self.scared:
             # When scared, move randomly or away from Pacman
             directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
@@ -62,32 +62,44 @@ class Ghost:
                 best_move = self.random_move()
                 self.direction = best_move
                 self.position = (self.position[0] + best_move[0], self.position[1] + best_move[1])
-            if self.behavior == "slow_chase":
-                best_move = self.slow_chase_move(pacman_position)
-                self.direction = best_move
-                self.position = (self.position[0] + best_move[0], self.position[1] + best_move[1])
 
     
     def chase_move(self, pacman_position):
-        path = self.map.astar(self.position, pacman_position)
+        """Use A* to find the best move for Ghost"""
+        # directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]  # right, down, left, up
+        # best_move = (0, 0)
+        # best_cost = float('inf')
+        #
+        # for direction in directions:
+        #     new_pos = (self.position[0] + direction[0], self.position[1] + direction[1])
+        #     map_array = self.map.get_map()
+        #
+        #     # Check if the move is valid
+        #     if (0 <= new_pos[0] < len(map_array) and
+        #         0 <= new_pos[1] < len(map_array[0]) and
+        #         map_array[new_pos[0]][new_pos[1]] != '#'):
+        #
+        #         # Calculate cost for this move
+        #         cost = self.map.calculate_ghost_cost(new_pos, other_ghost_positions, pacman_position)
+        #
+        #         if cost < best_cost:
+        #             best_cost = cost
+        #             best_move = direction
+        #
+        # move_ret = (random.randint(-1, 1), random.randint(-1, 1))
+        # if map_array[self.position[0] + move_ret[0]][self.position[1] + move_ret[1]] != '#':
+        #     return move_ret
+        path = self.map.astar(self.position, [pacman_position])
         self.move_queue = path[1:]
-        return path[0][0] - self.position[0], path[0][1] - self.position[1]
+        return path[1][0] - self.position[0], path[1][1] - self.position[1]
 
     def random_move(self):
         if self.move_queue:
             ret = self.move_queue.pop(0)
             return ret[0] - self.position[0], ret[1] - self.position[1]
-        path = self.map.astar(self.position, self.map.random_valid_position())
+        path = self.map.astar(self.position, [self.map.random_valid_position()])
         self.move_queue = path[1:]
-        return path[0][0] - self.position[0], path[0][1] - self.position[1]
-
-    def slow_chase_move(self, pacman_position):
-        if self.move_queue:
-            ret = self.move_queue.pop(0)
-            return ret[0] - self.position[0], ret[1] - self.position[1]
-        path = self.map.astar(self.position, pacman_position)
-        self.move_queue = path[1:]
-        return path[0][0] - self.position[0], path[0][1] - self.position[1]
+        return path[1][0] - self.position[0], path[1][1] - self.position[1]
     
     def set_scared(self, scared):
         self.scared = scared
