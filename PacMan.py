@@ -27,8 +27,7 @@ class PacMan:
         self.visible_cookies = []
         self.visible_power_pellets = []
         self.move_queue = []
-
-        print(self.map.width, self.map.height)
+        self.cur_visibility = np.zeros((self.map.height, self.map.width))
 
     def move(self, direction, ghosts):
         # Calculate potential new position
@@ -83,14 +82,46 @@ class PacMan:
                 self.power_mode = False
     
     def update_known_map(self):
-        # Update what Pac-Man knows about the map within Manhattan distance of 5
+        self.cur_visibility = np.zeros((self.map.height, self.map.width))
         real_map = self.map.get_map()
-        for i in range(max(0, self.position[0] - 5), min(len(real_map), self.position[0] + 6)):
-            for j in range(max(0, self.position[1] - 5), min(len(real_map[0]), self.position[1] + 6)):
-                # Check if within Manhattan distance of 5
-                if abs(i - self.position[0]) + abs(j - self.position[1]) <= 5:
-                    self.known_map[i][j] = real_map[i][j]
+        max_vision = 5
 
+        for i in range(max(0, self.position[0] - max_vision), min(len(real_map), self.position[0] + max_vision + 1)):
+            for j in range(max(0, self.position[1] - max_vision), min(len(real_map[0]), self.position[1] + max_vision + 1)):
+                if abs(i - self.position[0]) + abs(j - self.position[1]) > max_vision:
+                    continue
+
+                # Bresenham's line algorithm
+                visible = True
+                x0, y0 = self.position
+                x1, y1 = i, j
+
+                dx = abs(x1 - x0)
+                dy = abs(y1 - y0)
+                sx = 1 if x0 < x1 else -1
+                sy = 1 if y0 < y1 else -1
+                err = dx - dy
+
+                # Trace the line to check for walls
+                curr_x, curr_y = x0, y0
+                while (curr_x, curr_y) != (x1, y1):
+                    e2 = 2 * err
+                    if e2 > -dy:
+                        err -= dy
+                        curr_x += sx
+                    if e2 < dx:
+                        err += dx
+                        curr_y += sy
+
+                    # If we hit a wall, this cell is not visible
+                    if (curr_x, curr_y) != (x1, y1) and real_map[curr_x][curr_y] == '#':
+                        visible = False
+                        break
+
+                # Update known map if the cell is visible
+                if visible:
+                    self.known_map[i][j] = real_map[i][j]
+                    self.cur_visibility[i, j] = 1
 
     def update_ghost(self, ghost):
         if not ghost.moved:
@@ -121,8 +152,11 @@ class PacMan:
         for i in range(self.map.height):
             for j in range(self.map.width):
                 if self.known_valid((i, j)):
-                    if abs(i - self.position[0]) + abs(j - self.position[1]) > self.vision_range:
-                        next_prob[i, j] = ghost.prob_map[i, j]
+                   if 0 <= i < self.map.height and 0 <= j < self.map.width:
+                        print(i, j)
+
+                        if self.cur_visibility[i, j] == 1:
+                            next_prob[i, j] = ghost.prob_map[i, j]
         next_prob /= np.sum(next_prob)
         ghost.prob_map = next_prob
 
@@ -138,19 +172,79 @@ class PacMan:
     def update_visible_ghosts(self, ghosts):
         # Clear previous visible ghosts
         self.visible_ghosts = []
-        # Check which ghosts are within Manhattan distance of 5
+
+        real_map = self.map.get_map()
+        max_vision = 5
+
         for ghost in ghosts:
-            if abs(ghost.position[0] - self.position[0]) + abs(ghost.position[1] - self.position[1]) <= 5:
-                self.visible_ghosts.append(ghost)
-    
+            ghost_x, ghost_y = ghost.position
+            if abs(ghost_x - self.position[0]) + abs(ghost_y - self.position[1]) <= max_vision:
+                # Bresenham's line algorithm
+                visible = True
+                x0, y0 = self.position
+                x1, y1 = ghost_x, ghost_y
+
+                dx = abs(x1 - x0)
+                dy = abs(y1 - y0)
+                sx = 1 if x0 < x1 else -1
+                sy = 1 if y0 < y1 else -1
+                err = dx - dy
+
+                # Trace the line to check for walls
+                curr_x, curr_y = x0, y0
+                while (curr_x, curr_y) != (x1, y1):
+                    e2 = 2 * err
+                    if e2 > -dy:
+                        err -= dy
+                        curr_x += sx
+                    if e2 < dx:
+                        err += dx
+                        curr_y += sy
+
+                    # If we hit a wall, this cell is not visible
+                    if (curr_x, curr_y) != (x1, y1) and real_map[curr_x][curr_y] == '#':
+                        visible = False
+                        break
+
+                if visible:
+                    self.visible_ghosts.append(ghost)
+
+
     def update_visible_cookies(self):
-        # Check which cookies are within Manhattan distance of 5
         cookie_positions = self.map.cookie_positions
         real_map = self.map.get_map()
-        for i in range(max(0, self.position[0] - 5), min(len(real_map), self.position[0] + 6)):
-            for j in range(max(0, self.position[1] - 5), min(len(real_map[0]), self.position[1] + 6)):
-                if  (i,j) in cookie_positions and (i,j) not in self.visible_cookies:
-                    self.visible_cookies.append((i,j))
+        max_vision = 5
+
+        for cookie_pos in cookie_positions:
+            if abs(cookie_pos[0] - self.position[0]) + abs(cookie_pos[1] - self.position[1]) <= max_vision:
+                visible = True
+                x0, y0 = self.position
+                x1, y1 = cookie_pos
+
+                dx = abs(x1 - x0)
+                dy = abs(y1 - y0)
+                sx = 1 if x0 < x1 else -1
+                sy = 1 if y0 < y1 else -1
+                err = dx - dy
+
+                # Trace the line to check for walls
+                curr_x, curr_y = x0, y0
+                while (curr_x, curr_y) != (x1, y1):
+                    e2 = 2 * err
+                    if e2 > -dy:
+                        err -= dy
+                        curr_x += sx
+                    if e2 < dx:
+                        err += dx
+                        curr_y += sy
+
+                    # If we hit a wall, this cell is not visible
+                    if (curr_x, curr_y) != (x1, y1) and real_map[curr_x][curr_y] == '#':
+                        visible = False
+                        break
+
+                if visible and cookie_pos not in self.visible_cookies:
+                    self.visible_cookies.append(cookie_pos)
 
         for cookie_pos in self.visible_cookies:
             if cookie_pos not in self.map.cookie_positions:
@@ -364,7 +458,9 @@ def main():
     BLUE = np.array((0, 0, 255), dtype= np.float64)
     GRAY = np.array((100, 100, 100) , dtype= np.float64)
     GREEN = np.array((0, 255, 0) , dtype= np.float64)
-    
+    # CELL = np.array((0, 0, 0), dtype= np.float64)
+
+
     # Set up the display
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Pac-Man")
@@ -469,6 +565,7 @@ def main():
                         cell_color += (ghost_prob[i, j]**gamma)*ghost.color
                     #print(ghost_prob)
                 cell_color = np.clip(cell_color, 0, 255)
+                print(cell_color)
                 pygame.draw.rect(screen, cell_color, (j * CELL_SIZE, i * CELL_SIZE, CELL_SIZE, CELL_SIZE))
 
                 if pellet != 0:
